@@ -87,13 +87,6 @@ Thought:"""
 # CHANGE 4: Drop tools= from ollama.chat(). The LLM has no idea it's an agent —
 # all agency comes from the prompt above and our regex parsing below.
 
-@traceable(name="Ollama Chat", run_type="llm")
-def ollama_chat_traced(model, messages, options):
-    return ollama.chat(model=model, messages=messages, options=options)
-
-
-
-
 
 # --- Agent Loop ---
 
@@ -106,7 +99,6 @@ def run_agent(question: str):
 
     # CHANGE 5: One prompt string replaces the system/user message split.
     prompt = react_prompt.format(question=question)
-    scratchpad = "" 
 
     for iteration in range(1, MAX_ITERATIONS + 1):
         print(f"\n--- Iteration {iteration} ---")
@@ -114,16 +106,14 @@ def run_agent(question: str):
 
         # Stop token prevents the LLM from generating its own Observation —
         # we inject the real tool result instead.
-        response = ollama_chat_traced(
-            model=MODEL,
-            messages=[{"role": "user", "content": full_prompt}],
-            options={"stop": ["\nObservation"], "temperature": 0},
-        )
+        response = llm.invoke(full_prompt)
+
         output = response.message.content
         print(f"LLM Output:\n{output}")
 
         print(f"  [Parsing] Looking for Final Answer in LLM output...")
         final_answer_match = re.search(r"Final Answer:\s*(.+)", output)
+        
         if final_answer_match:
             final_answer = final_answer_match.group(1).strip()
             print(f"  [Parsed] Final Answer: {final_answer}")
